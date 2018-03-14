@@ -8,7 +8,9 @@ autoreconf --verbose --force --install --make || {
  exit 1;
 }
 
-./configure || {
+CFLAGS="-I/home/wangsh/EDZN-SJDW-ZBAR/zbar/include/ -L/home/wangsh/EDZN-SJDW-ZBAR/zbar/build/zbar/.libs/" \
+LIBS="-Wl,-Bstatic -lzbar -Wl,-Bdynamic -lpthread" \
+./configure  || {
  echo 'configure failed';
  exit 1;
 }
