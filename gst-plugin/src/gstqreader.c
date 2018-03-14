@@ -87,13 +87,23 @@ enum
 static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("ANY")
+    //GST_STATIC_CAPS ("ANY")
+    GST_STATIC_CAPS("video/x-raw, \
+    format = {GRAY8}, \
+    width = (int) [1, 3000], \
+    height = (int) [1, 4000], \
+    framerate = (fraction) [0, 30]")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("ANY")
+    //GST_STATIC_CAPS ("ANY")
+    GST_STATIC_CAPS("video/x-raw, \
+    format = {GRAY8}, \
+    width = (int) [1, 3000], \
+    height = (int) [1, 4000], \
+    framerate = (fraction) [0, 30]")
     );
 
 #define gst_qreader_parent_class parent_class
@@ -226,6 +236,49 @@ gst_qreader_sink_event (GstPad * pad, GstObject * parent, GstEvent * event)
   return ret;
 }
 
+/*******************************************************************************
+Function: 
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+Others:
+*******************************************************************************/
+/* Functions below print the Capabilities in a human-friendly format */  
+static gboolean print_field (GQuark field, const GValue * value, gpointer pfx) {  
+  gchar *str = gst_value_serialize (value);  
+    
+  g_print ("%s  %15s: %s\n", (gchar *) pfx, g_quark_to_string (field), str);  
+  g_free (str);  
+  return TRUE;  
+}  
+
+static void print_caps (const GstCaps * caps, const gchar * pfx) {  
+  guint i;  
+    
+  g_return_if_fail (caps != NULL);  
+    
+  if (gst_caps_is_any (caps)) {  
+    g_print ("%sANY\n", pfx);  
+    return;  
+  }  
+  if (gst_caps_is_empty (caps)) {  
+    g_print ("%sEMPTY\n", pfx);  
+    return;  
+  }  
+    
+  for (i = 0; i < gst_caps_get_size (caps); i++) {  
+    GstStructure *structure = gst_caps_get_structure (caps, i);  
+      
+    g_print ("%s%s\n", pfx, gst_structure_get_name (structure));  
+    gst_structure_foreach (structure, print_field, (gpointer) pfx);  
+  }  
+}  
+
 /* chain function
  * this function does the actual processing
  */
@@ -237,7 +290,23 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   filter = GST_QREADER (parent);
 
   if (filter->silent == FALSE)
-    g_print ("I'm plugged, therefore I'm in.\n");
+  {
+	g_print ("Have data of size %" G_GSIZE_FORMAT" bytes!\n", gst_buffer_get_size (buf));
+	g_print("PTS=%d, DTS=%d, OS=%d, OS_End=%d\r\n", GST_BUFFER_PTS(buf), GST_BUFFER_DTS(buf), GST_BUFFER_OFFSET(buf), GST_BUFFER_OFFSET_END(buf));
+  }
+  
+  GstCaps *lptrv_Caps = gst_pad_get_current_caps(pad);
+  if(lptrv_Caps != NULL)
+  {
+  	print_caps (lptrv_Caps, "      ");
+  	gst_caps_unref(lptrv_Caps);
+  }
+  
+  
+  GstMapInfo ltruv_BufMap = {0};
+  int ls32v_Ret = gst_buffer_map (buf, &ltruv_BufMap, GST_MAP_WRITE); 
+  memset (ltruv_BufMap.data, 0, ltruv_BufMap.size/2);
+  gst_buffer_unmap(buf, &ltruv_BufMap);
 
   /* just push out the incoming buffer without touching it */
   return gst_pad_push (filter->srcpad, buf);
