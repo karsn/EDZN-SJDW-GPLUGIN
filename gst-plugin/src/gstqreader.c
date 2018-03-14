@@ -298,6 +298,14 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   GstCaps *lptrv_Caps = gst_pad_get_current_caps(pad);
   if(lptrv_Caps != NULL)
   {
+  	gint ls32v_Width = 0;
+	gint ls32v_Height = 0;
+  	GstStructure *lptrv_GstStruct = gst_caps_get_structure(lptrv_Caps, 0);
+  	
+  	gst_structure_get_int (lptrv_GstStruct, "width", &ls32v_Width);
+	gst_structure_get_int (lptrv_GstStruct, "height", &ls32v_Height);
+	g_print("img width=%d, height=%d\r\n", ls32v_Width, ls32v_Height);
+  	
   	print_caps (lptrv_Caps, "      ");
   	gst_caps_unref(lptrv_Caps);
   }
