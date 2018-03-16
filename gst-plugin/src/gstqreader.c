@@ -296,24 +296,34 @@ Others:
 #define CURSOR_SIZE 10
 void imgPlotCursor(int nX, int nY, int nWidth, int nHeight, unsigned char *const pGray)
 {
-	for(int i=nX-CURSOR_SIZE/2; i < nX+CURSOR_SIZE/2; i++)
+	for(int i=(nX-CURSOR_SIZE); i <= (nX+CURSOR_SIZE); i++)
 	{
-		if((i<0)||(i>nWidth))
+		//for(int j=nY-1; j <= nY+1; j++)
 		{
-			continue;
+			//if((i<0)||(i>nWidth)||(j<0)||(j>nHeight))
+			if((i<0)||(i>nWidth))
+			{
+				continue;
+			}
+			
+			pGray[nY*nWidth+i] = 255;
 		}
-		
-		pGray[nY*nWidth+i] = 255;
 	}
 	
-	for(int j=nY-CURSOR_SIZE/2; j < nY+CURSOR_SIZE/2; j++)
+	//for(int i=nX-1; i <= nX+1; i++)
 	{
-		if((j<0)||(j>nHeight))
+		for(int j=(nY-CURSOR_SIZE); j <= (nY+CURSOR_SIZE); j++)
 		{
-			continue;
+			//if((i<0)||(i>nWidth)||(j<0)||(j>nHeight))
+			if((j<0)||(j>nHeight))
+			{
+				continue;
+			}
+			
+			//g_print("j=%d,nX=%d,nY=%d,nWidth=%d\r\n",j,nX,nY,nWidth);
+			
+			pGray[j*nWidth+nX] = 255;
 		}
-		
-		pGray[j*nWidth+nX] = 255;
 	}
 }
 
@@ -348,7 +358,7 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   gst_structure_get_int (lptrv_GstStruct, "height", &ls32v_Height);
   g_print("img width=%d, height=%d\r\n", ls32v_Width, ls32v_Height);
   
-  print_caps (lptrv_Caps, "      ");
+  //print_caps (lptrv_Caps, "      ");
   gst_caps_unref(lptrv_Caps);
   
   
@@ -388,7 +398,7 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
                                                         zbar_symbol_get_quality(symbol));
   }
   
-  g_print("%s(): Release img...\r\n", __func__);
+  //g_print("%s(): Release img...\r\n", __func__);
   zbar_image_destroy(lptrv_Image);
   lptrv_Image = NULL;
   
@@ -398,7 +408,7 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   	imgPlotCursor(lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY,ls32v_Width, ls32v_Height, ltruv_BufMap.data);
   }
   
-  g_print("%s(): Release center...\r\n", __func__);
+  //g_print("%s(): Release center...\r\n", __func__);
   zbar_image_free_center(NULL, lptrv_QRPoint); //free Centers
   
   gst_buffer_unmap(buf, &ltruv_BufMap);
