@@ -63,6 +63,7 @@
 #include <gst/gst.h>
 
 #include "gstqreader.h"
+#include "lib_qreader.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_qreader_debug);
 #define GST_CAT_DEFAULT gst_qreader_debug
@@ -116,7 +117,7 @@ static void gst_qreader_get_property (GObject * object, guint prop_id,
 
 static gboolean gst_qreader_sink_event (GstPad * pad, GstObject * parent, GstEvent * event);
 static GstFlowReturn gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf);
-static GstStateChangeReturn gst_qreader_change_state (GstElement *element, GstStateChange transition);
+//static GstStateChangeReturn gst_qreader_change_state (GstElement *element, GstStateChange transition);
 
 /* GObject vmethod implementations */
 
@@ -133,7 +134,7 @@ gst_qreader_class_init (GstqreaderClass * klass)
   gobject_class->set_property = gst_qreader_set_property;
   gobject_class->get_property = gst_qreader_get_property;
   
-  gstelement_class->change_state = gst_qreader_change_state;
+//  gstelement_class->change_state = gst_qreader_change_state;
 
   g_object_class_install_property (gobject_class, PROP_SILENT,
       g_param_spec_boolean ("silent", "Silent", "Produce verbose output ?", FALSE, G_PARAM_READWRITE));
@@ -354,56 +355,23 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   
   GstMapInfo ltruv_BufMap = {0};
   int ls32v_Ret = gst_buffer_map (buf, &ltruv_BufMap, GST_MAP_WRITE); 
-  //memset (ltruv_BufMap.data, 0, ltruv_BufMap.size/2);
   
   /* Decode */
-  zbar_image_t *lptrv_Image = zbar_image_create(); //Create Image
-  zbar_image_set_format(lptrv_Image, *(int*)"Y800");
-  zbar_image_set_size(lptrv_Image, ls32v_Width, ls32v_Height);
-  zbar_image_set_data(lptrv_Image, 
-                      ltruv_BufMap.data, 
-                      ls32v_Width*ls32v_Height, 
-                      NULL);
-  
-  
-  ls32v_Ret = zbar_scan_image(lptrv_QReader->pScanner, lptrv_Image); //Decode 
-  if(ls32v_Ret < 0)
-  {
-  	g_print("%s(): scan failed!\r\n",__func__);
-  	
-  	return -1;
-  }
-  
-  zbar_point_int_t *lptrv_QRPoint = NULL;  //Extract Centers
-  int ls32v_NumCenters = zbar_image_get_center(lptrv_Image, &lptrv_QRPoint);
-  
-  const zbar_symbol_t *symbol = zbar_image_first_symbol(lptrv_Image);
-  for(; symbol; symbol = zbar_symbol_next(symbol)) 
-  {
-      /* do something useful with results */
-      zbar_symbol_type_t typ = zbar_symbol_get_type(symbol);
-      const char *data = zbar_symbol_get_data(symbol);
-      g_print("decoded %s symbol \"%s\" quality=%d\n", zbar_get_symbol_name(typ), 
-                                                        data, 
-                                                        zbar_symbol_get_quality(symbol));
-  }
-  
-  g_print("%s(): Release img...\r\n", __func__);
-  zbar_image_destroy(lptrv_Image);
-  lptrv_Image = NULL;
+  TruArray * lptrv_PointArray = qreaderDecode((char *)ltruv_BufMap.data, ls32v_Width, ls32v_Height);
   
   /*Plot Center */ 
-  for(int i=0; i<ls32v_NumCenters; i++)
+  for(int i=0; i<lptrv_PointArray->nSize; i++)
   {
-  	imgPlotCursor(lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY,ls32v_Width, ls32v_Height, ltruv_BufMap.data);
+  	imgPlotCursor((int)lptrv_PointArray->pArray[i].fX, 
+  	              (int)lptrv_PointArray->pArray[i].fY,
+  	              ls32v_Width, 
+  	              ls32v_Height, 
+  	              ltruv_BufMap.data);
   }
   
-  g_print("%s(): Release center...\r\n", __func__);
-  zbar_image_free_center(NULL, lptrv_QRPoint); //free Centers
+  qreaderArrayDestroy(lptrv_PointArray);
   
   gst_buffer_unmap(buf, &ltruv_BufMap);
-  
-  
 
   /* just push out the incoming buffer without touching it */
   return gst_pad_push (lptrv_QReader->srcpad, buf);
@@ -421,6 +389,7 @@ Output:
 Return:
 Others:
 *******************************************************************************/
+#if 0
 static GstStateChangeReturn gst_qreader_change_state (GstElement *element, GstStateChange transition)
 {
 	GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
@@ -466,6 +435,7 @@ static GstStateChangeReturn gst_qreader_change_state (GstElement *element, GstSt
 	
 	return ret;
 }
+#endif
 /* entry point to initialize the plug-in
  * initialize the plug-in itself
  * register the element factories and other features

@@ -20,8 +20,6 @@
 #include <sstream>
 #include <cstdlib>
 #include <algorithm>
-#include "lodepng.h"
-#include "jpgd.h"
 
 using std::string;
 using std::ostringstream;
@@ -47,6 +45,13 @@ inline char ImageReaderSource::convertPixel(char const* pixel_) const {
 
 ImageReaderSource::ImageReaderSource(ArrayRef<char> image_, int width, int height, int comps_)
     : Super(width, height), image(image_), comps(comps_) {}
+
+Ref<LuminanceSource> ImageReaderSource::create(char *const pImg, int nWidth, int nHeight) {
+  zxing::ArrayRef<char> image = zxing::ArrayRef<char>(pImg, nWidth*nHeight);
+  int comps = 1;
+
+  return Ref<LuminanceSource>(new ImageReaderSource(image, nWidth, nHeight, comps));
+}
 
 zxing::ArrayRef<char> ImageReaderSource::getRow(int y, zxing::ArrayRef<char> row) const {
   const char* pixelRow = &image[0] + y * getWidth() * 4;

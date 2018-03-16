@@ -17,15 +17,13 @@ plugin_LTLIBRARIES = libgstqreader.la
 ## Plugin 1
 
 # sources used to compile this plug-in
-libgstqreader_la_SOURCES = gstqreader.c gstqreader.h lib_qreader.cpp lib_qreader.h ImageReaderSource.cpp ImageReaderSource.h
+libgstqreader_la_SOURCES = gstqreader.cpp gstqreader.h lib_qreader.cpp lib_qreader.h ImageReaderSource.cpp ImageReaderSource.h
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgstqreader_la_CFLAGS = $(GST_CFLAGS)
-libgstqreader_la_CFLAGS += -std=c++11 -I/home/wangsh/EDZN-SJDW-ZXING/zxing/out/include/
+libgstqreader_la_CXXFLAGS = $(GST_CFLAGS)
 libgstqreader_la_LIBADD = $(GST_LIBS)
-libgstqreader_la_LIBADD += -lstdc++
 libgstqreader_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
-libgstqreader_la_LDFLAGS += -L/home/wangsh/EDZN-SJDW-ZXING/zxing/out/
 libgstqreader_la_LIBTOOLFLAGS = --tag=disable-static
 
 ### Plugin 2 (audio filter example)

@@ -29,6 +29,7 @@ private:
   char convertPixel(const char* pixel) const;
 
 public:
+  static zxing::Ref<LuminanceSource> create(char *const pImg, int nWidth, int nHeighte);
   ImageReaderSource(zxing::ArrayRef<char> image, int width, int height, int comps);
 
   zxing::ArrayRef<char> getRow(int y, zxing::ArrayRef<char> row) const;

@@ -47,7 +47,6 @@
 #define __GST_QREADER_H__
 
 #include <gst/gst.h>
-#include <zbar.h>
 
 G_BEGIN_DECLS
 
@@ -73,8 +72,6 @@ struct _Gstqreader
   GstPad *sinkpad, *srcpad;
 
   gboolean silent;
-  
-  zbar_image_scanner_t *pScanner;
 };
 
 struct _GstqreaderClass 
