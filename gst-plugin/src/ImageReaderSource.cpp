@@ -73,7 +73,7 @@ zxing::ArrayRef<char> ImageReaderSource::getMatrix() const {
     for (int x = 0; x < getWidth(); x++) {
       *m = convertPixel(p);
       m++;
-      p += 4;
+      p += comps;
     }
   }
   return matrix;

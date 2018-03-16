@@ -120,8 +120,7 @@ Others:
 TruArray *qreaderDecode(char *const pImg, int nWidth, int nHeight)
 {
 	Ref<LuminanceSource> source;
-
-	cout << __func__ << ": start..." << endl;    
+ 
     try {
       //zxing::ArrayRef<char> image = zxing::ArrayRef<char>(pImg, nWidth*nHeight);
       //source = new ImageReaderSource(image, nWidth, nHeight, 1);
@@ -131,30 +130,26 @@ TruArray *qreaderDecode(char *const pImg, int nWidth, int nHeight)
       //continue;
     }
     
-    cout << __func__ << ": create img success" << endl;
-    
     Ref<Binarizer> binarizer;
     binarizer = new HybridBinarizer(source); //implements a local thresholding algorithm
     Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
-    
-    cout << __func__ << ": Binarizer success" << endl;
-    
+
     DecodeHints hints(DecodeHints::DEFAULT_HINT);
     hints.setTryHarder(true);
-    
-    cout << __func__ << ": Set hints success" << endl;
-    
-    Ref<BitMatrix> lptrv_BitMatrix = binary->getBlackMatrix();
-    cout << __func__ << ": Get BlackMatrix success" << endl;
-    Detector detector(lptrv_BitMatrix);
 
-	//Detector detector(binary->getBlackMatrix());
+
+	Detector detector(binary->getBlackMatrix());
 	//Ref<DetectorResult> detectorResult(detector.detect(hints));
 	//ArrayRef< Ref<ResultPoint> > points (detectorResult->getPoints());
-	
-	cout << __func__ << ": detector success" << endl;
-	
+
 	vector<Ref<FinderPattern> > points = detector.detectFindPattern(hints);
+	if(points.size() == null)
+	{
+		cout << __func__ << ": None point found" << endl;
+		
+		return NULL;
+	}
+	
 	TruArray *lptrv_Array = qreaderArrayCreate(points.size());
 	if(lptrv_Array == NULL)
 	{

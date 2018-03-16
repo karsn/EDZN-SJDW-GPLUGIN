@@ -349,7 +349,7 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   gst_structure_get_int (lptrv_GstStruct, "height", &ls32v_Height);
   g_print("img width=%d, height=%d\r\n", ls32v_Width, ls32v_Height);
   
-  print_caps (lptrv_Caps, "      ");
+  //print_caps (lptrv_Caps, "      ");
   gst_caps_unref(lptrv_Caps);
   
   
@@ -358,18 +358,20 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   
   /* Decode */
   TruArray * lptrv_PointArray = qreaderDecode((char *)ltruv_BufMap.data, ls32v_Width, ls32v_Height);
-  
-  /*Plot Center */ 
-  for(int i=0; i<lptrv_PointArray->nSize; i++)
+  if(lptrv_PointArray != NULL)
   {
-  	imgPlotCursor((int)lptrv_PointArray->pArray[i].fX, 
-  	              (int)lptrv_PointArray->pArray[i].fY,
-  	              ls32v_Width, 
-  	              ls32v_Height, 
-  	              ltruv_BufMap.data);
+	  /*Plot Center */ 
+	  for(int i=0; i<lptrv_PointArray->nSize; i++)
+	  {
+	  	imgPlotCursor((int)lptrv_PointArray->pArray[i].fX, 
+	  	              (int)lptrv_PointArray->pArray[i].fY,
+	  	              ls32v_Width, 
+	  	              ls32v_Height, 
+	  	              ltruv_BufMap.data);
+	  }
+	  
+	  qreaderArrayDestroy(lptrv_PointArray);
   }
-  
-  qreaderArrayDestroy(lptrv_PointArray);
   
   gst_buffer_unmap(buf, &ltruv_BufMap);
 
