@@ -47,8 +47,8 @@ ImageReaderSource::ImageReaderSource(ArrayRef<char> image_, int width, int heigh
     : Super(width, height), image(image_), comps(comps_) {}
 
 Ref<LuminanceSource> ImageReaderSource::create(char *const pImg, int nWidth, int nHeight) {
-  zxing::ArrayRef<char> image = zxing::ArrayRef<char>(pImg, nWidth*nHeight);
-  int comps = 1;
+  zxing::ArrayRef<char> image = zxing::ArrayRef<char>(pImg, 4*nWidth*nHeight);
+  int comps = 4;
 
   return Ref<LuminanceSource>(new ImageReaderSource(image, nWidth, nHeight, comps));
 }

@@ -98,7 +98,7 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_ALWAYS,
     //GST_STATIC_CAPS ("ANY")
     GST_STATIC_CAPS("video/x-raw, \
-    format = {GRAY8}, \
+    format = {RGBx}, \
     width = (int) [1, 3000], \
     height = (int) [1, 4000], \
     framerate = (fraction) [0, 30]")
@@ -109,7 +109,7 @@ static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_ALWAYS,
     //GST_STATIC_CAPS ("ANY")
     GST_STATIC_CAPS("video/x-raw, \
-    format = {GRAY8}, \
+    format = {RGBx}, \
     width = (int) [1, 3000], \
     height = (int) [1, 4000], \
     framerate = (fraction) [0, 30]")
