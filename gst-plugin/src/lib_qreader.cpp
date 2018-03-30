@@ -14,6 +14,7 @@ History:
 
 //#include <stddef.h>
 #include <assert.h>
+#include <math.h>
 #include "lib_qreader.h"
 #include "ImageReaderSource.h"
 #include <zxing/detector/Detector.h>
@@ -363,7 +364,433 @@ Output:
 Return:
 Others:
 *******************************************************************************/
+//int const ls32c_YDelt[] = {0,2,3,5,7,9,10,12,14,16,17,19};
+
+static int round_double(float number)
+{
+    return (number > 0.0) ? (number + 0.5) : (number - 0.5); 
+}
+
 static int qreaderCheck30(size_t centerJ, size_t centerI, Ref<BitMatrix> image_) 
+{
+	int maxI = image_->getHeight();
+	int maxJ = image_->getWidth();
+	int stateCount[5];
+	for (int i = 0; i < 5; i++)
+		stateCount[i] = 0;
+	
+	
+	// Start counting up from center
+	int i = centerI;
+	int j = centerJ;
+	while((i >= 0) && (j>=0) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		i--;
+		//j=round(1.732f*((float)i-centerI))+centerJ;
+		j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	}
+	if((i < 0) || (j<0))
+	{
+		cout << __func__ << ": 2_0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int maxCount = stateCount[2]*2;
+	
+	while((i >= 0) && (j>=0) && (!image_->get(j, i)) && (stateCount[1] <= maxCount)) 
+	{
+		stateCount[1]++;
+		i--;
+		j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	}
+	// If already too many modules in this state or ran off the edge:
+	if((i < 0) || (j<0) || (stateCount[1] > maxCount)) 
+	{
+		cout << __func__ << ": 1 error -- " << i << "," << j <<endl;
+		
+		return -1;
+	}
+	while((i >= 0) && (j>=0) && image_->get(j, i) && (stateCount[0] <= maxCount))
+	{
+		stateCount[0]++;
+		i--;
+		j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	}
+	if((i < 0) || (j<0) || (stateCount[0] > maxCount))
+	{
+		cout << __func__ << ": 0 error -- " << i << "," << j <<endl;
+		
+		return -1;
+	}
+	
+	// Now also count down from center
+	i = centerI + 1;
+	j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	while((i < maxI) && (j<maxJ) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		i++;
+		j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	}
+	if ((i >= maxI) || (j>=maxJ)) 
+	{
+		cout << __func__ << ": 2_1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j<maxJ) && (!image_->get(j, i)) && (stateCount[3] < maxCount))
+	{
+		stateCount[3]++;
+		i++;
+		j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	}
+	if((i >= maxI) || (j >= maxJ) || (stateCount[3] >= maxCount)) 
+	{
+		cout << __func__ << ": 3 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j<maxJ) && image_->get(j, i) && (stateCount[4] < maxCount))
+	{
+		stateCount[4]++;
+		i++;
+		j = (int)round(1.732f*((float)i-centerI)) + centerJ;
+	}
+	if (stateCount[4] >= maxCount) 
+	{
+		cout << __func__ << ": 4 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int stateCountTotal = stateCount[0] + stateCount[1] + stateCount[2] + stateCount[3] + stateCount[4];
+	
+	return (stateCountTotal*2);
+}
+
+/*******************************************************************************
+Function: 
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+Others:
+*******************************************************************************/
+static int qreaderCheck60(size_t centerJ, size_t centerI, Ref<BitMatrix> image_) 
+{
+	int maxI = image_->getHeight();
+	int maxJ = image_->getWidth();
+	int stateCount[5];
+	for (int i = 0; i < 5; i++)
+		stateCount[i] = 0;
+	
+	
+	// Start counting up from center
+	int i = centerI;
+	int j = centerJ;
+	while((i >= 0) && (j >= 0) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		j--;
+		i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	}
+	if((i < 0) || (j<0))
+	{
+		cout << __func__ << ": 2_0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int maxCount = stateCount[2]*2;
+	
+	while((i >= 0) && (j>=0) && (!image_->get(j, i)) && (stateCount[1] <= maxCount)) 
+	{
+		stateCount[1]++;
+		j--;
+		i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	}
+	// If already too many modules in this state or ran off the edge:
+	if((i < 0) || (j<0) || (stateCount[1] > maxCount)) 
+	{
+		cout << __func__ << ": 1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i >= 0) && (j>=0) && image_->get(j, i) && (stateCount[0] <= maxCount))
+	{
+		stateCount[0]++;
+		j--;
+		i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	}
+	if((i < 0) || (j<0) || (stateCount[0] > maxCount))
+	{
+		cout << __func__ << ": 0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	// Now also count down from center
+	j = centerJ + 1;
+	i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	while((i < maxI) && (j<maxJ) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		j++;
+		i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	}
+	if ((i >= maxI) || (j>=maxJ)) 
+	{
+		cout << __func__ << ": 2_1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j<maxJ) && (!image_->get(j, i)) && (stateCount[3] < maxCount))
+	{
+		stateCount[3]++;
+		j++;
+		i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	}
+	if((i >= maxI) || (j >= maxJ) || (stateCount[3] >= maxCount)) 
+	{
+		cout << __func__ << ": 3 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j<maxJ) && image_->get(j, i) && (stateCount[4] < maxCount))
+	{
+		stateCount[4]++;
+		j++;
+		i=(int)round(1.732f*((float)j-centerJ)) + centerI;
+	}
+	if (stateCount[4] >= maxCount) 
+	{
+		cout << __func__ << ": 4 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int stateCountTotal = stateCount[0] + stateCount[1] + stateCount[2] + stateCount[3] + stateCount[4];
+	
+	return (stateCountTotal*2);
+}
+
+/*******************************************************************************
+Function: 
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+Others:
+*******************************************************************************/
+static int qreaderCheck150(size_t centerJ, size_t centerI, Ref<BitMatrix> image_) 
+{
+	int maxI = image_->getHeight();
+	int maxJ = image_->getWidth();
+	int stateCount[5];
+	for (int i = 0; i < 5; i++)
+		stateCount[i] = 0;
+	
+	
+	// Start counting up from center
+	int i = centerI;
+	int j = centerJ;
+	while((i >= 0) && (j<maxJ) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		i--;
+		j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	}
+	if((i < 0) || (j >= maxJ))
+	{
+		cout << __func__ << ": 2_0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int maxCount = stateCount[2]*2;
+	
+	while((i >= 0) && (j<maxJ) && (!image_->get(j, i)) && (stateCount[1] <= maxCount)) 
+	{
+		stateCount[1]++;
+		i--;
+		j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	}
+	// If already too many modules in this state or ran off the edge:
+	if((i < 0) || (j >= maxJ) || (stateCount[1] > maxCount)) 
+	{
+		cout << __func__ << ": 1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i >= 0) && (j<maxJ) && image_->get(j, i) && (stateCount[0] <= maxCount))
+	{
+		stateCount[0]++;
+		i--;
+		j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	}
+	if((i < 0) || (j >= maxJ) || (stateCount[0] > maxCount))
+	{
+		cout << __func__ << ": 0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	// Now also count down from center
+	i = centerI + 1;
+	j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	while((i < maxI) && (j>=0) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		i++;
+		j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	}
+	if ((i >= maxI) || (j<0)) 
+	{
+		cout << __func__ << ": 2_1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j>=0) && (!image_->get(j, i)) && (stateCount[3] < maxCount))
+	{
+		stateCount[3]++;
+		i++;
+		j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	}
+	if((i >= maxI) || (j<0) || (stateCount[3] >= maxCount)) 
+	{
+		cout << __func__ << ": 3 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j>=0) && image_->get(j, i) && (stateCount[4] < maxCount))
+	{
+		stateCount[4]++;
+		i++;
+		j=(int)round(1.732f*((float)centerI-i)) + centerJ;
+	}
+	if (stateCount[4] >= maxCount) 
+	{
+		cout << __func__ << ": 4 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int stateCountTotal = stateCount[0] + stateCount[1] + stateCount[2] + stateCount[3] + stateCount[4];
+	
+	return (stateCountTotal*2);
+}
+
+/*******************************************************************************
+Function: 
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+Others:
+*******************************************************************************/
+static int qreaderCheck120(size_t centerJ, size_t centerI, Ref<BitMatrix> image_) 
+{
+	int maxI = image_->getHeight();
+	int maxJ = image_->getWidth();
+	int stateCount[5];
+	for (int i = 0; i < 5; i++)
+		stateCount[i] = 0;
+	
+	
+	// Start counting up from center
+	int i = centerI;
+	int j = centerJ;
+	while((i >= 0) && (j<maxJ) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		j++;
+		i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	}
+	if((i < 0) || (j>=maxJ))
+	{
+		cout << __func__ << ": 2_0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int maxCount = stateCount[2]*2;
+	
+	while((i >= 0) && (j<maxJ) && (!image_->get(j, i)) && (stateCount[1] <= maxCount)) 
+	{
+		stateCount[1]++;
+		j++;
+		i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	}
+	// If already too many modules in this state or ran off the edge:
+	if((i < 0) || (j>=maxJ) || (stateCount[1] > maxCount)) 
+	{
+		cout << __func__ << ": 1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i >= 0) && (j<maxJ) && image_->get(j, i) && (stateCount[0] <= maxCount))
+	{
+		stateCount[0]++;
+		j++;
+		i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	}
+	if((i < 0) || (j>=maxJ) || (stateCount[0] > maxCount))
+	{
+		cout << __func__ << ": 0 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	// Now also count down from center
+	j = centerJ - 1;
+	i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	while((i < maxI) && (j>=0) && image_->get(j, i)) 
+	{
+		stateCount[2]++;
+		j++;
+		i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	}
+	if ((i >= maxI) || (j<0)) 
+	{
+		cout << __func__ << ": 2_1 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j>=0) && (!image_->get(j, i)) && (stateCount[3] < maxCount))
+	{
+		stateCount[3]++;
+		j++;
+		i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	}
+	if((i >= maxI) || (j <0) || (stateCount[3] >= maxCount)) 
+	{
+		cout << __func__ << ": 3 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	while((i < maxI) && (j>=0) && image_->get(j, i) && (stateCount[4] < maxCount))
+	{
+		stateCount[4]++;
+		j++;
+		i=(int)round(1.732f*((float)centerJ-j)) + centerI;
+	}
+	if (stateCount[4] >= maxCount) 
+	{
+		cout << __func__ << ": 4 error -- " << i << "," << j <<endl;
+		return -1;
+	}
+	
+	int stateCountTotal = stateCount[0] + stateCount[1] + stateCount[2] + stateCount[3] + stateCount[4];
+	
+	return (stateCountTotal*2);
+}
+
+/*******************************************************************************
+Function: 
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+Others:
+*******************************************************************************/
+static int qreaderCheck45(size_t centerJ, size_t centerI, Ref<BitMatrix> image_) 
 {
 	int maxI = image_->getHeight();
 	int maxJ = image_->getWidth();
@@ -379,7 +806,7 @@ static int qreaderCheck30(size_t centerJ, size_t centerI, Ref<BitMatrix> image_)
 	{
 		stateCount[2]++;
 		i--;
-		j-=2;
+		j--;
 	}
 	if((i < 0) || (j<0))
 	{
@@ -388,22 +815,22 @@ static int qreaderCheck30(size_t centerJ, size_t centerI, Ref<BitMatrix> image_)
 	
 	int maxCount = stateCount[2]*2;
 	
-	while((i >= 0) && (j>=0) && (!image_->get(j, i)) && (stateCount[1] <= maxCount)) 
+	while((i >= 0) && (j>= 0) && (!image_->get(j, i)) && (stateCount[1] <= maxCount)) 
 	{
 		stateCount[1]++;
 		i--;
-		j-=2;
+		j--;
 	}
 	// If already too many modules in this state or ran off the edge:
 	if((i < 0) || (j<0) || (stateCount[1] > maxCount)) 
 	{
 		return -1;
 	}
-	while((i >= 0) && (j>=0) && image_->get(centerJ, i) && (stateCount[0] <= maxCount))
+	while((i >= 0) && (j>= 0) && image_->get(j, i) && (stateCount[0] <= maxCount))
 	{
 		stateCount[0]++;
 		i--;
-		j-=2;
+		j--;
 	}
 	if((i < 0) || (j<0) || (stateCount[0] > maxCount))
 	{
@@ -412,12 +839,12 @@ static int qreaderCheck30(size_t centerJ, size_t centerI, Ref<BitMatrix> image_)
 	
 	// Now also count down from center
 	i = centerI + 1;
-	j = centerJ + 2;
+	j = centerJ + 1;
 	while((i < maxI) && (j<maxJ) && image_->get(j, i)) 
 	{
 		stateCount[2]++;
 		i++;
-		j+=2;
+		j++;
 	}
 	if ((i >= maxI) || (j>=maxJ)) 
 	{
@@ -427,26 +854,26 @@ static int qreaderCheck30(size_t centerJ, size_t centerI, Ref<BitMatrix> image_)
 	{
 		stateCount[3]++;
 		i++;
-		j+=2;
+		j++;
 	}
-	if((i >= maxI) || (j >= maxJ) || (stateCount[3] >= maxCount)) 
+	if((i >= maxI) || (j>=maxJ) || (stateCount[3] >= maxCount)) 
 	{
 		return -1;
 	}
-	while((i < maxI) && (j<maxJ) && image_->get(centerJ, i) && (stateCount[4] < maxCount))
+	while((i < maxI) && (j<maxJ) && image_->get(j, i) && (stateCount[4] < maxCount))
 	{
 		stateCount[4]++;
 		i++;
-		j+=2;
+		j++;
 	}
-	if (stateCount[4] >= maxCount) 
+	if((i>=maxI) || (j>=maxJ) || (stateCount[4] >= maxCount)) 
 	{
 		return -1;
 	}
 	
 	int stateCountTotal = stateCount[0] + stateCount[1] + stateCount[2] + stateCount[3] + stateCount[4];
 	
-	return (stateCountTotal*2000/1732);
+	return (stateCountTotal*1414/1000);
 }
 
 /*******************************************************************************
@@ -497,7 +924,7 @@ static int qreaderCheck135(size_t centerJ, size_t centerI, Ref<BitMatrix> image_
 	{
 		return -1;
 	}
-	while((i >= 0) && (j<maxJ) && image_->get(centerJ, i) && (stateCount[0] <= maxCount))
+	while((i >= 0) && (j<maxJ) && image_->get(j, i) && (stateCount[0] <= maxCount))
 	{
 		stateCount[0]++;
 		i--;
@@ -531,7 +958,7 @@ static int qreaderCheck135(size_t centerJ, size_t centerI, Ref<BitMatrix> image_
 	{
 		return -1;
 	}
-	while((i < maxI) && (j>=0) && image_->get(centerJ, i) && (stateCount[4] < maxCount))
+	while((i < maxI) && (j>=0) && image_->get(j, i) && (stateCount[4] < maxCount))
 	{
 		stateCount[4]++;
 		i++;
@@ -547,6 +974,8 @@ static int qreaderCheck135(size_t centerJ, size_t centerI, Ref<BitMatrix> image_
 	return (stateCountTotal*1414/1000);
 }
 
+
+#if 0
 /*******************************************************************************
 Function: qreaderShapeIdentify
 Description:
@@ -587,7 +1016,7 @@ static int qreaderShapeCheck(ArrayRef<int> cDimensions)
 	ls32v_MDevi /= 4;
 	float lf32v_MDeviNorm = sqrt(ls32v_MDevi)/ls32v_Mean;
 	
-	cout << __func__ << ": Std Devi(Norm) = " << lf32v_MDeviNorm << endl;
+	cout << __func__ << ": Std Devi(Norm),Mean = " << lf32v_MDeviNorm << "," << ls32v_Mean << endl;
 	
 	if(ls32v_MDevi > CIRCLE_THRESHOLD)
 	{
@@ -668,6 +1097,174 @@ static int qreaderShapeIdentify(TruArray *const pPatterns, Ref<BitMatrix> image_
 			pPatterns->pArray[i].nShape = 1;
 			continue;
 		}
+		
+		pPatterns->pArray[i].nShape = qreaderShapeCheck(lclav_Dimensions);
+	}
+	
+	return 0;
+}
+#endif
+
+/*******************************************************************************
+Function: qreaderShapeIdentify
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+ 1.[int]
+   <0 failed
+   =0 circle
+   =1 not circle
+Others:
+*******************************************************************************/
+#define CIRCLE_THRESHOLD 0.3f
+	
+static int qreaderShapeCheck(ArrayRef<int> cDimensions)
+{
+	float const lclac_CosVect[]={1,-0.5,-0.5,1,-0.5,-0.5};
+	float const lclac_SinVect[]={0,0.866025404,-0.866025404,0,0.866025404,-0.866025404};
+	
+	/* Check input */
+	assert(cDimensions->size() == (sizeof(lclac_CosVect)/sizeof(float)));
+	
+	/* Cal Mean */
+	int ls32v_Mean = 0;
+	for(int i=0; i<cDimensions->size(); i++)
+	{
+		ls32v_Mean += cDimensions[i];
+	}
+	ls32v_Mean /= cDimensions->size();
+	
+	/* Cal Vect */
+	float lf32v_CosVect = 0;
+	float lf32v_SinVect = 0;
+	for(int i=0; i<cDimensions->size(); i++)
+	{
+		lf32v_CosVect += cDimensions[i]*lclac_CosVect[i];
+		lf32v_SinVect += cDimensions[i]*lclac_SinVect[i];
+	}
+	
+	lf32v_CosVect /= ls32v_Mean;
+	lf32v_SinVect /= ls32v_Mean;
+	
+	
+	/* Cal Standard Deviation */
+	float lf32v_Scope = sqrt(lf32v_CosVect*lf32v_CosVect + lf32v_SinVect*lf32v_SinVect);
+	
+	cout << __func__ << ": (cos,sin,scope) = " << lf32v_CosVect << "," << lf32v_SinVect << "," << lf32v_Scope << endl;
+	
+	if(lf32v_Scope > CIRCLE_THRESHOLD)
+	{
+		return 1;
+	}
+
+	return 0;
+}
+
+/*******************************************************************************
+Function: 
+Description:
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+Others:
+*******************************************************************************/
+static int qreaderShapeIdentify(TruArray *const pPatterns, Ref<BitMatrix> image_)
+{
+	/* Check Input */
+	assert(pPatterns != NULL);
+	assert(image_ != NULL);
+	
+	/* handle */
+	for(int i=0; i<pPatterns->nSize; i++)
+	{
+		ArrayRef<int> lclav_Dimensions(6);
+		
+		/* 0 */
+		lclav_Dimensions[0] = qreaderCheckHorizontal((size_t)(pPatterns->pArray[i].fX), 
+		                                             (size_t)(pPatterns->pArray[i].fY), 
+		                                             image_);
+		
+		if(lclav_Dimensions[0] < 0)
+		{
+			pPatterns->pArray[i].nShape = 1;
+			continue;
+		}
+		
+		cout << "Dim[6]=" << lclav_Dimensions[0] << ",";
+		
+		/* 30 */
+		lclav_Dimensions[1] = qreaderCheck30((size_t)(pPatterns->pArray[i].fX), 
+		                                     (size_t)(pPatterns->pArray[i].fY), 
+		                                      image_);
+		
+		if(lclav_Dimensions[1] < 0)
+		{
+			pPatterns->pArray[i].nShape = 1;
+			continue;
+		}
+		
+		cout << lclav_Dimensions[1] << ",";
+		
+		/* 60 */
+		lclav_Dimensions[2] = qreaderCheck60((size_t)(pPatterns->pArray[i].fX), 
+		                                     (size_t)(pPatterns->pArray[i].fY), 
+		                                      image_);
+		
+		if(lclav_Dimensions[2] < 0)
+		{
+			pPatterns->pArray[i].nShape = 1;
+			continue;
+		}
+		
+		cout << lclav_Dimensions[2] << ",";
+		
+		/* 90 */
+		lclav_Dimensions[3] = qreaderCheckVertical((size_t)(pPatterns->pArray[i].fX), 
+		                                           (size_t)(pPatterns->pArray[i].fY), 
+		                                           image_);
+		
+		if(lclav_Dimensions[3] < 0)
+		{
+			pPatterns->pArray[i].nShape = 1;
+			continue;
+		}
+		
+		cout << lclav_Dimensions[3] << ",";
+		
+		/* 120 */
+		lclav_Dimensions[4] = qreaderCheck120((size_t)(pPatterns->pArray[i].fX), 
+		                                      (size_t)(pPatterns->pArray[i].fY), 
+		                                       image_);
+		
+		if(lclav_Dimensions[4] < 0)
+		{
+			pPatterns->pArray[i].nShape = 1;
+			continue;
+		}
+		
+		cout << lclav_Dimensions[4] << ",";
+		
+		/* 150 */
+		lclav_Dimensions[5] = qreaderCheck150((size_t)(pPatterns->pArray[i].fX), 
+		                                      (size_t)(pPatterns->pArray[i].fY), 
+		                                       image_);
+		
+		if(lclav_Dimensions[5] < 0)
+		{
+			pPatterns->pArray[i].nShape = 1;
+			continue;
+		}
+		
+		cout << lclav_Dimensions[5] << endl;
 		
 		pPatterns->pArray[i].nShape = qreaderShapeCheck(lclav_Dimensions);
 	}
