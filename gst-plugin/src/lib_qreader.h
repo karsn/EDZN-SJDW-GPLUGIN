@@ -23,6 +23,7 @@ struct Tru_Point
 {
 	float fX;
 	float fY;
+	int nShape; //0 circle | !0 others
 };
 typedef struct Tru_Point TruPoint;
 
