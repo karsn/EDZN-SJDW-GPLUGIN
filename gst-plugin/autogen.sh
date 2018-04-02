@@ -8,8 +8,10 @@ autoreconf --verbose --force --install --make || {
  exit 1;
 }
 
-CFLAGS="-I/home/wangsh/EDZN-SJDW-ZBAR/zbar/include/ -L/home/wangsh/EDZN-SJDW-ZBAR/zbar/build/zbar/.libs/" \
-LIBS="-Wl,-Bstatic -lzbar -Wl,-Bdynamic -lpthread" \
+CFLAGS="-Wall -ggdb3 -I/home/wangsh/EDZN-SJDW-ZBAR/zbar/include/ -L/home/wangsh/EDZN-SJDW-ZBAR/zbar/build/zbar/.libs/" \
+CXXFLAGS="-Wall -ggdb3 -std=c++11 -I/home/wangsh/EDZN-SJDW-ZBAR/gplugin/gst-plugin/src/zxing/include/" \
+LDFLAGS=-L/home/wangsh/EDZN-SJDW-ZBAR/gplugin/gst-plugin/src/zxing/ \
+LIBS="-Wl,-Bstatic -lzbar -lzxing -Wl,-Bdynamic -lpthread -lstdc++" \
 ./configure  || {
  echo 'configure failed';
  exit 1;
