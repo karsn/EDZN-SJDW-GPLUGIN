@@ -174,6 +174,21 @@ TruArray *qreaderDecode(char *const pImg, int nWidth, int nHeight)
     
     /* Shape Identify */
     qreaderShapeIdentify(lptrv_Array, binary->getBlackMatrix());
+    
+    /* Only for Debug (Output Binarizer)*/
+    Ref<BitMatrix> lclav_BitMatrixRef = binary->getBlackMatrix();
+    for(int i=0; i<nHeight; i++)
+    {
+    	for(int j=0; j< nWidth; j++)
+    	{
+    		unsigned char lu8v_Gray = 0;
+    		lu8v_Gray = lclav_BitMatrixRef->get(j,i) ? 0:255;
+    		pImg[(i*nWidth+j)*4] = lu8v_Gray;
+    		pImg[(i*nWidth+j)*4+1] = lu8v_Gray;
+    		pImg[(i*nWidth+j)*4+2] = lu8v_Gray;
+    		pImg[(i*nWidth+j)*4+3] = 0;
+    	}
+    }
 	
 	return lptrv_Array;
 }
