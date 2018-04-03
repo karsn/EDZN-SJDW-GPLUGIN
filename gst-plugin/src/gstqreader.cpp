@@ -60,9 +60,16 @@
 #  include <config.h>
 #endif
 
+#include <assert.h>
+#include <cmath>
+#include <vector>
+#include <array>
+#include <iostream>
+
 #include <gst/gst.h>
 
 #include "gstqreader.h"
+using namespace std;
 
 GST_DEBUG_CATEGORY_STATIC (gst_qreader_debug);
 #define GST_CAT_DEFAULT gst_qreader_debug
@@ -241,6 +248,7 @@ gst_qreader_sink_event (GstPad * pad, GstObject * parent, GstEvent * event)
 /*******************************************************************************
 Function: 
 Description:
+ Functions below print the Capabilities in a human-friendly format
 Calls:
 Called By:
 Table Accessed:
@@ -250,7 +258,6 @@ Output:
 Return:
 Others:
 *******************************************************************************/
-/* Functions below print the Capabilities in a human-friendly format */  
 static gboolean print_field (GQuark field, const GValue * value, gpointer pfx) {  
   gchar *str = gst_value_serialize (value);  
     
@@ -298,41 +305,341 @@ void imgPlotCursor(int nX, int nY, int nWidth, int nHeight, unsigned char *const
 {
 	for(int i=(nX-CURSOR_SIZE); i <= (nX+CURSOR_SIZE); i++)
 	{
-		//for(int j=nY-1; j <= nY+1; j++)
+		if((i<0)||(i>nWidth))
 		{
-			//if((i<0)||(i>nWidth)||(j<0)||(j>nHeight))
-			if((i<0)||(i>nWidth))
-			{
-				continue;
-			}
-			
-			pGray[nY*nWidth+i] = 255;
+			continue;
 		}
+		
+		pGray[nY*nWidth+i] = 255;
 	}
 	
-	//for(int i=nX-1; i <= nX+1; i++)
+
+	for(int j=(nY-CURSOR_SIZE); j <= (nY+CURSOR_SIZE); j++)
 	{
-		for(int j=(nY-CURSOR_SIZE); j <= (nY+CURSOR_SIZE); j++)
+		if((j<0)||(j>nHeight))
 		{
-			//if((i<0)||(i>nWidth)||(j<0)||(j>nHeight))
-			if((j<0)||(j>nHeight))
-			{
-				continue;
-			}
-			
-			//g_print("j=%d,nX=%d,nY=%d,nWidth=%d\r\n",j,nX,nY,nWidth);
-			
-			pGray[j*nWidth+nX] = 255;
+			continue;
 		}
+		
+		pGray[j*nWidth+nX] = 255;
 	}
 }
 
+int imgPlotRect(int nXL, int nYL, 
+                 int nXB, int nYB, 
+                 int nWidth, int nHeight,
+                 unsigned char *const pGray)
+{
+	/* Check Input */
+	assert(nXL>=0);
+	assert(nXL<nXB);
+	assert(nXB>=0);
+	assert(nXB<nWidth);
+	assert(nYL>=0);
+	assert(nYL<nYB);
+	assert(nYB>=0);
+	assert(nYB<nHeight);
+	
+	/* Draw */
+	for(int i=nXL; i <nXB; i++)
+	{
+		pGray[nYL*nWidth + i] = 255;
+		pGray[nYB*nWidth + i] = 255;
+	}
+	
+	for(int j=nYL; j<nYB; j++)
+	{
+		pGray[j*nWidth+nXL] = 255;
+		pGray[j*nWidth+nXB] = 255;
+	}
+	
+	return 0;
+}
+
+int imgPlotLine(int nX0, int nY0, 
+                int nX1, int nY1, 
+                int nWidth, int nHeight,
+                unsigned char *const pGray)
+{
+	/* Check Input */
+	assert(nX0>=0);
+	assert(nX0<nWidth);
+	assert(nX1>=0);
+	assert(nX1<nWidth);
+	assert(nY0>=0);
+	assert(nY0<nHeight);
+	assert(nY1>=0);
+	assert(nY1<nHeight);
+	
+	/* Draw */	
+	double lf64v_K = (nY1-nY0)*1.0/(nX1-nX0);
+	double lf64v_Y = nY0;
+	for(auto ls32v_X = nX0 ; ls32v_X <= nX1 ; ls32v_X++) 
+	{
+		pGray[(int)round(lf64v_Y)*nWidth + ls32v_X] = 255;
+		lf64v_Y += lf64v_K;
+	}
+	
+	return 0;
+}
+
+#if 0
+void *imgCrop(int nXL, int nYL, 
+                 int nXB, int nYB, 
+                 int nWidth, int nHeight,
+                 unsigned char *const pGray)
+{
+	/* Check Input */
+	assert(nXL>=0);
+	assert(nXL<nXB);
+	assert(nXB>=0);
+	assert(nXB<nWidth);
+	assert(nYL>=0);
+	assert(nYL<nYB);
+	assert(nYB>=0);
+	assert(nYB<nHeight);
+	
+	/* Draw */
+	for(int i=nXL; i <nXB; i++)
+	{
+		pGray[nYL*nWidth + i] = 255;
+		pGray[nYB*nWidth + i] = 255;
+	}
+	
+	for(int j=nYL; j<nYB; j++)
+	{
+		pGray[j*nWidth+nXL] = 255;
+		pGray[j*nWidth+nXB] = 255;
+	}
+	
+	return 0;
+}
+#endif
+/*******************************************************************************
+Function: motionClassifyPatterns
+Description:
+ 1. Conditions
+    Shape
+    Position
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+Return:
+ 1.[int]
+   <0 --- failed
+   >=0 --- Mech Idx
+Others:
+*******************************************************************************/
+typedef std::array<int,3> ClaPoint3D; //x , y , shape
+
+int motionClassifyPatterns(std::vector<ClaPoint3D> &cPatterns, int nWidth, int nHeight)
+{
+	/* Check Input */
+	assert(nWidth>0);
+	
+	/* Check Position */
+	std::vector<int> lclav_PossibleIdx;
+	for(int i=0; i<cPatterns.size(); i++)
+	{
+		if((cPatterns[i][0] > nWidth*9/10) && (cPatterns[i][0]<nWidth*11/10))
+		{
+			lclav_PossibleIdx.push_back(i);
+		}
+	}
+	
+	if(lclav_PossibleIdx.size()<=0)
+	{
+		cout << __func__ << ": None found" << endl;
+		return -1;
+	}
+	
+	/* check shape */
+	for(int i=0; i<lclav_PossibleIdx.size(); i++)
+	{
+		if(cPatterns[lclav_PossibleIdx[i]][2] != 0)
+		{
+			lclav_PossibleIdx.erase(lclav_PossibleIdx.begin()+i);
+		}
+	}
+	
+	/* Output */
+	if(lclav_PossibleIdx.size() != 1)
+	{
+		return -1;
+	}
+	
+	return lclav_PossibleIdx[0];
+}
+
+/*******************************************************************************
+Function: motionHandleLocate
+Description:
+ 1.Locate Ref Points
+   L = L0 && dY/dX > N(10)
+   
+ 2.Locate Left
+   X < X0 && Y < Y0
+   L = K1L0 && dY/dX = N1
+   
+ 3.Locate Right
+   X > X0 && Y < Y0
+   L = K2L0 && dY/dX = N2
+Calls:
+Called By:
+Table Accessed:
+Table Updated:
+Input:
+Output:
+ 1.[cPatterns]
+   0 ---- RefA
+   1 ---- RefB
+   2 ---- Left
+   3 ---- Right
+Return:
+Others:
+*******************************************************************************/
+#define MOTION_L0 32.0f
+#define MOTION_N0 10.0f
+#define MOTION_K1 1.6f
+#define MOTION_N1 2.0f
+#define MOTION_K2 1.0f
+#define MOTION_N2 3.0f
+
+int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
+{
+	ClaPoint3D lclav_RefA={0,0,-1};
+	ClaPoint3D lclav_RefB={0,0,-1};
+	ClaPoint3D lclav_Left={0,0,-1};
+	ClaPoint3D lclav_Right={0,0,-1};
+	int ls32v_Ret = 0;
+	
+	/* Check Input */
+	
+	/* Check Num of Patterns */
+	if((cPatterns.size() < 3) || (cPatterns.size() > 7))
+	{
+		cout << "Too much/little Patterns-" << cPatterns.size() << endl;
+		
+		cPatterns.clear();
+		
+		return -1;
+	}
+
+	/* Locate Ref Patterns */
+	lclav_RefA = cPatterns[0];
+	int i = 0;
+	for(i=0; i<cPatterns.size(); i++)
+	{
+		int j = 0;
+		ClaPoint3D lclav_Iter = cPatterns[i];
+		
+		for(j=i+1; j<cPatterns.size(); j++)
+		{
+			unsigned int lu32v_DeltX = abs(cPatterns[j][0]-lclav_Iter[0]);
+			unsigned int lu32v_DeltY = abs(cPatterns[j][1]-lclav_Iter[1]);
+			
+			float lf32v_L = sqrt(pow(lu32v_DeltX,2)+pow(lu32v_DeltY,2));
+			float lf32v_K = (float)lu32v_DeltY/lu32v_DeltX;
+			
+			if((lf32v_L>MOTION_L0*0.9)&&(lf32v_L<MOTION_L0*1.1)&&(lf32v_K>MOTION_N0))
+			{
+				break;
+			}
+		} 
+		
+		if(j<cPatterns.size())
+		{
+			if(lclav_Iter[1] > cPatterns[j][1])
+			{
+				lclav_RefA = lclav_Iter;
+				lclav_RefB = cPatterns[j];
+			}
+			else
+			{
+				lclav_RefA = cPatterns[j];
+				lclav_RefB = lclav_Iter;
+			}
+			
+			break;
+		}
+	}
+	
+	if(i>= cPatterns.size())
+	{
+		cout << "Cann't find Refs!" << endl;
+		
+		cPatterns.clear();
+		return -2;
+	}
+	
+	/* Search Left */
+	for(i=0; i<cPatterns.size(); i++)
+	{
+		if((cPatterns[i][0]>lclav_RefA[0]) || (cPatterns[i][1] > lclav_RefA[1]))
+		{
+			continue;
+		}
+		
+		unsigned int lu32v_DeltX = abs(cPatterns[i][0]-lclav_RefA[0]);
+		unsigned int lu32v_DeltY = abs(cPatterns[i][1]-lclav_RefA[1]);
+		
+		float lf32v_L = sqrt(pow(lu32v_DeltX,2)+pow(lu32v_DeltY,2));
+		
+		if((lf32v_L>MOTION_L0*MOTION_K1*0.9)&&(lf32v_L<MOTION_L0*MOTION_K1*1.1)
+		&& (lu32v_DeltY>lu32v_DeltX*MOTION_N1*0.9)&&(lu32v_DeltY<lu32v_DeltX*MOTION_N1*1.1))
+		{
+			lclav_Left = cPatterns[i];
+			
+			break;
+		}
+	}
+	
+	/* Search Right */
+	for(i=0; i<cPatterns.size(); i++)
+	{
+		if((cPatterns[i][0]<lclav_RefA[0]) || (cPatterns[i][1] > lclav_RefA[1]))
+		{
+			continue;
+		}
+		
+		unsigned int lu32v_DeltX = abs(cPatterns[i][0]-lclav_RefA[0]);
+		unsigned int lu32v_DeltY = abs(cPatterns[i][1]-lclav_RefA[1]);
+		
+		float lf32v_L = sqrt(pow(lu32v_DeltX,2)+pow(lu32v_DeltY,2));
+		
+		if((lf32v_L>MOTION_L0*MOTION_K2*0.9)&&(lf32v_L<MOTION_L0*MOTION_K2*1.1)
+		&& (lu32v_DeltY>lu32v_DeltX*MOTION_N2*0.9)&&(lu32v_DeltY<lu32v_DeltX*MOTION_N2*1.1))
+		{
+			lclav_Right = cPatterns[i];
+			
+			break;
+		}
+	}
+	
+	cPatterns.clear();
+	cPatterns.push_back(lclav_RefA);
+	cPatterns.push_back(lclav_RefB);
+	cPatterns.push_back(lclav_Left);
+	cPatterns.push_back(lclav_Right);
+		
+	if(((lclav_Left[0]|lclav_Left[1])==0)
+	&& ((lclav_Right[0]|lclav_Right[1])==0))
+	{
+		cout << "Cann't find direction!" << endl;
+
+		return -3;
+	}
+
+	return 0;
+}
 
 /* chain function
  * this function does the actual processing
  */
-static GstFlowReturn
-gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
+static GstFlowReturn gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 {
   Gstqreader *lptrv_QReader = NULL;
 
@@ -381,7 +688,7 @@ gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   {
   	g_print("%s(): scan failed!\r\n",__func__);
   	
-  	return -1;
+  	return GST_FLOW_CUSTOM_ERROR;
   }
   
   zbar_point_int_t *lptrv_QRPoint = NULL;  //Extract Centers
@@ -447,12 +754,12 @@ static GstStateChangeReturn gst_qreader_change_state (GstElement *element, GstSt
 		    lptrv_QReader->pScanner = zbar_image_scanner_create();
 		
 		    /* configure the reader */
-		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, 0, ZBAR_CFG_ENABLE, 0);
+		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, ZBAR_NONE, ZBAR_CFG_ENABLE, 0);
 		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
 		    //zbar_image_scanner_set_config(lptrv_Scanner, ZBAR_ISBN13, ZBAR_CFG_ENABLE, 1);
 		    //zbar_image_scanner_set_config(lptrv_Scanner, ZBAR_EAN13, ZBAR_CFG_ENABLE, 1);
-		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, 0, ZBAR_CFG_X_DENSITY, 1);
-		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, 0, ZBAR_CFG_Y_DENSITY, 1);
+		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, ZBAR_QRCODE, ZBAR_CFG_X_DENSITY, 1);
+		    zbar_image_scanner_set_config(lptrv_QReader->pScanner, ZBAR_QRCODE, ZBAR_CFG_Y_DENSITY, 1);
 			break;
 		default:
 			break;

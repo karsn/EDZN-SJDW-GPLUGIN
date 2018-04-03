@@ -17,10 +17,11 @@ plugin_LTLIBRARIES = libgstqreader.la libgsthybridbin.la
 ## Plugin 1
 
 # sources used to compile this plug-in
-libgstqreader_la_SOURCES = gstqreader.c gstqreader.h
+libgstqreader_la_SOURCES = gstqreader.cpp gstqreader.h
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgstqreader_la_CFLAGS = $(GST_CFLAGS)
+libgstqreader_la_CXXFLAGS = $(GST_CFLAGS)
 libgstqreader_la_LIBADD = $(GST_LIBS)
 libgstqreader_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstqreader_la_LIBTOOLFLAGS = --tag=disable-static

@@ -49,6 +49,8 @@
 #include <gst/gst.h>
 #include <zbar.h>
 
+using namespace zbar;
+
 G_BEGIN_DECLS
 
 /* #defines don't like whitespacey bits */
