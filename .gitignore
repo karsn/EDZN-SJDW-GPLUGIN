@@ -14,6 +14,7 @@
 *.o.*
 *.d
 *.a
+!/gst-plugin/src/zxing/libzxing.a
 *.s
 *.ko
 *.so
@@ -39,86 +40,14 @@ Module.symvers
 *.dwo
 *.su
 *.bak
+*.lo
+*.la
 
-#
-# Top-level generic files
-#
-/kernel.img
-/resource.img
-/tags
-/TAGS
-/linux
-/vmlinux
-/vmlinux.32
-/vmlinux-gdb.py
-/vmlinuz
-/System.map
-/Module.markers
 
-/cam_out
-/cam_view
+Makefile
 
-#
-# Debian directory (make deb-pkg)
-#
-/debian/
+/gst-plugin/img
+/gst-plugin/my-plugin-package-1.0.0/
+/gst-plugin/cfg_help.txt
+/gst-plugin/compile
 
-#
-# tar directory (make tar*-pkg)
-#
-/tar-install/
-
-#
-# git files that we don't want to ignore even it they are dot-files
-#
-!.gitignore
-!.mailmap
-
-#
-# Generated include files
-#
-include/config
-include/generated
-arch/*/include/generated
-
-# stgit generated dirs
-patches-*
-
-# quilt's files
-patches
-series
-
-# cscope files
-cscope.*
-ncscope.*
-
-# gnu global files
-GPATH
-GRTAGS
-GSYMS
-GTAGS
-
-# id-utils files
-ID
-
-*.orig
-*~
-\#*#
-
-#
-# Leavings from module signing
-#
-extra_certificates
-signing_key.pem
-signing_key.priv
-signing_key.x509
-x509.genkey
-
-# Kconfig presets
-all.config
-
-# Kdevelop4
-*.kdev4
-
-# fetched Android config fragments
-android/configs/android-*.cfg
