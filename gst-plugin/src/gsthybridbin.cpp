@@ -302,20 +302,37 @@ gst_hybrid_bin_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
     Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
 
 	Ref<BitMatrix> lclav_BitMatrixRef = binary->getBlackMatrix();
+	
+	//gst_buffer_unmap(buf, &ltruv_BufMap); //Release buf
+	//gst_buffer_unref(buf);
+	//
+	////GstBuffer *lptrv_GrayBuf = gst_buffer_new_allocate( NULL, ls32v_Width*ls32v_Height*4, NULL);
+	//////GstBuffer *lptrv_GrayBuf = gst_buffer_new_allocate( NULL, ls32v_Width*ls32v_Height, NULL);
+	//GstBuffer *lptrv_GrayBuf = gst_buffer_copy_deep (buf);
+	//if(lptrv_GrayBuf == NULL)
+	//{
+	//	g_print("Alloc new buffer failed!\r\n");
+	//}
+	//ls32v_Ret = gst_buffer_map (lptrv_GrayBuf, &ltruv_BufMap, GST_MAP_WRITE);
+	
     for(int i=0; i<ls32v_Height; i++)
     {
     	for(int j=0; j< ls32v_Width; j++)
     	{
-    		unsigned char lu8v_Gray = 0;
-    		lu8v_Gray = lclav_BitMatrixRef->get(j,i) ? 0:255;
-    		ltruv_BufMap.data[(i*ls32v_Width+j)*4] = lu8v_Gray;
-    		ltruv_BufMap.data[(i*ls32v_Width+j)*4+1] = lu8v_Gray;
-    		ltruv_BufMap.data[(i*ls32v_Width+j)*4+2] = lu8v_Gray;
-    		ltruv_BufMap.data[(i*ls32v_Width+j)*4+3] = 0;
+    		//unsigned char lu8v_Gray = 0;
+    		//lu8v_Gray = lclav_BitMatrixRef->get(j,i) ? 0:255;
+    		//ltruv_BufMap.data[(i*ls32v_Width+j)*4] = lu8v_Gray;
+    		//ltruv_BufMap.data[(i*ls32v_Width+j)*4+1] = lu8v_Gray;
+    		//ltruv_BufMap.data[(i*ls32v_Width+j)*4+2] = lu8v_Gray;
+    		//ltruv_BufMap.data[(i*ls32v_Width+j)*4+3] = 0;
+    		ltruv_BufMap.data[i*ls32v_Width+j] = lclav_BitMatrixRef->get(j,i) ? 0:255;
     	}
     }
-  
-  gst_buffer_unmap(buf, &ltruv_BufMap);
+    //gst_buffer_unmap(lptrv_GrayBuf, &ltruv_BufMap);
+    
+   gst_buffer_unmap(buf, &ltruv_BufMap);
+   //gst_buffer_resize(buf, 0, ls32v_Width*ls32v_Height);
+   
 
   /* just push out the incoming buffer without touching it */
   return gst_pad_push (lptrv_QReader->srcpad, buf);
