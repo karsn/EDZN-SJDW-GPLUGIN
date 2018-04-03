@@ -343,14 +343,14 @@ int imgPlotRect(int nXL, int nYL,
 	/* Draw */
 	for(int i=nXL; i <nXB; i++)
 	{
-		pGray[nYL*nWidth + i] = 255;
-		pGray[nYB*nWidth + i] = 255;
+		pGray[nYL*nWidth + i] = 0;
+		pGray[nYB*nWidth + i] = 0;
 	}
 	
 	for(int j=nYL; j<nYB; j++)
 	{
-		pGray[j*nWidth+nXL] = 255;
-		pGray[j*nWidth+nXB] = 255;
+		pGray[j*nWidth+nXL] = 0;
+		pGray[j*nWidth+nXB] = 0;
 	}
 	
 	return 0;
@@ -501,12 +501,12 @@ Output:
 Return:
 Others:
 *******************************************************************************/
-#define MOTION_L0 32.0f
-#define MOTION_N0 10.0f
-#define MOTION_K1 1.6f
-#define MOTION_N1 2.0f
-#define MOTION_K2 1.0f
-#define MOTION_N2 3.0f
+#define MOTION_L0 421.0f
+#define MOTION_N0 15.0f
+#define MOTION_K1 1.66f //699
+#define MOTION_N1 1.3f
+#define MOTION_K2 1.05f //444
+#define MOTION_N2 3.3f
 
 int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 {
@@ -519,7 +519,7 @@ int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 	/* Check Input */
 	
 	/* Check Num of Patterns */
-	if((cPatterns.size() < 3) || (cPatterns.size() > 7))
+	if((cPatterns.size() < 3) || (cPatterns.size() > 10))
 	{
 		cout << "Too much/little Patterns-" << cPatterns.size() << endl;
 		
@@ -546,6 +546,7 @@ int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 			
 			if((lf32v_L>MOTION_L0*0.9)&&(lf32v_L<MOTION_L0*1.1)&&(lf32v_K>MOTION_N0))
 			{
+				cout << __func__ << "Ref find [i,j]=[" << i << "," << j << "]" <<endl;
 				break;
 			}
 		} 
@@ -566,6 +567,7 @@ int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 			break;
 		}
 	}
+	cout << __func__ << "RefA=[" << lclav_RefA[0] << "," << lclav_RefA[1] << "]" << endl;
 	
 	if(i>= cPatterns.size())
 	{
@@ -593,6 +595,7 @@ int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 		{
 			lclav_Left = cPatterns[i];
 			
+			cout << __func__ << "Left find -" << i << endl;
 			break;
 		}
 	}
@@ -610,10 +613,14 @@ int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 		
 		float lf32v_L = sqrt(pow(lu32v_DeltX,2)+pow(lu32v_DeltY,2));
 		
+		//cout << __func__ << "i=" << i << "[DeltX,DeltY] = " << lu32v_DeltX << "," << lu32v_DeltY << endl;
+		
 		if((lf32v_L>MOTION_L0*MOTION_K2*0.9)&&(lf32v_L<MOTION_L0*MOTION_K2*1.1)
-		&& (lu32v_DeltY>lu32v_DeltX*MOTION_N2*0.9)&&(lu32v_DeltY<lu32v_DeltX*MOTION_N2*1.1))
+		&& (lu32v_DeltX>lu32v_DeltY*MOTION_N2*0.9)&&(lu32v_DeltX<lu32v_DeltY*MOTION_N2*1.1))
 		{
 			lclav_Right = cPatterns[i];
+			
+			cout << __func__ << "Right find -" << i << endl;
 			
 			break;
 		}
@@ -694,27 +701,48 @@ static GstFlowReturn gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuf
   zbar_point_int_t *lptrv_QRPoint = NULL;  //Extract Centers
   int ls32v_NumCenters = zbar_image_get_center(lptrv_Image, &lptrv_QRPoint);
   
-  const zbar_symbol_t *symbol = zbar_image_first_symbol(lptrv_Image);
-  for(; symbol; symbol = zbar_symbol_next(symbol)) 
-  {
-      /* do something useful with results */
-      zbar_symbol_type_t typ = zbar_symbol_get_type(symbol);
-      const char *data = zbar_symbol_get_data(symbol);
-      g_print("decoded %s symbol \"%s\" quality=%d\n", zbar_get_symbol_name(typ), 
-                                                        data, 
-                                                        zbar_symbol_get_quality(symbol));
-  }
+//  const zbar_symbol_t *symbol = zbar_image_first_symbol(lptrv_Image);
+//  for(; symbol; symbol = zbar_symbol_next(symbol)) 
+//  {
+//      /* do something useful with results */
+//      zbar_symbol_type_t typ = zbar_symbol_get_type(symbol);
+//      const char *data = zbar_symbol_get_data(symbol);
+//      g_print("decoded %s symbol \"%s\" quality=%d\n", zbar_get_symbol_name(typ), 
+//                                                        data, 
+//                                                        zbar_symbol_get_quality(symbol));
+//  }
   
   //g_print("%s(): Release img...\r\n", __func__);
   zbar_image_destroy(lptrv_Image);
   lptrv_Image = NULL;
   
   /*Plot Center */ 
+  std::vector<ClaPoint3D> lclav_Patterns(0);
+  
   for(int i=0; i<ls32v_NumCenters; i++)
   {
   	imgPlotCursor(lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY,ls32v_Width, ls32v_Height, ltruv_BufMap.data);
+  	lclav_Patterns.push_back(ClaPoint3D({lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY, 0}));
   }
   
+  /* Create Map */
+  ls32v_Ret = motionCreateMap(lclav_Patterns);
+  
+  if(ls32v_Ret < 0)
+  {
+  	g_print("%s(): Create map failed!\r\n",__func__);
+  	
+  	return GST_FLOW_CUSTOM_ERROR;
+  }
+  
+  imgPlotRect(lclav_Patterns[2][0], lclav_Patterns[2][1], 
+              lclav_Patterns[0][0], lclav_Patterns[0][1], 
+              ls32v_Width, ls32v_Height, ltruv_BufMap.data);
+  
+  imgPlotRect(lclav_Patterns[0][0], lclav_Patterns[3][1], 
+              lclav_Patterns[3][0], lclav_Patterns[0][1], 
+              ls32v_Width, ls32v_Height, ltruv_BufMap.data);
+              
   //g_print("%s(): Release center...\r\n", __func__);
   zbar_image_free_center(NULL, lptrv_QRPoint); //free Centers
   
