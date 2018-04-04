@@ -516,10 +516,10 @@ Others:
 
 int motionCreateMap(std::vector<ClaPoint4D> &cPatterns)
 {
-	ClaPoint4D lclav_RefA={0,0,-1};
-	ClaPoint4D lclav_RefB={0,0,-1};
-	ClaPoint4D lclav_Left={0,0,-1};
-	ClaPoint4D lclav_Right={0,0,-1};
+	ClaPoint4D lclav_RefA={0,0,-1,-1};
+	ClaPoint4D lclav_RefB={0,0,-1,-1};
+	ClaPoint4D lclav_Left={0,0,-1,-1};
+	ClaPoint4D lclav_Right={0,0,-1,-1};
 	int ls32v_Ret = 0;
 	
 	/* Check Input */
@@ -573,15 +573,16 @@ int motionCreateMap(std::vector<ClaPoint4D> &cPatterns)
 			break;
 		}
 	}
-	cout << __func__ << "RefA=[" << lclav_RefA[0] << "," << lclav_RefA[1] << "]" << endl;
-	
+
 	if(i>= cPatterns.size())
 	{
-		cout << "Cann't find Refs!" << endl;
+		cout << __func__ << ": Cann't find Refs!" << endl;
 		
 		cPatterns.clear();
 		return -2;
 	}
+	
+	cout << __func__ << ": RefA=[" << lclav_RefA[0] << "," << lclav_RefA[1] << "]" << endl;
 	
 	/* Search Left */
 	for(i=0; i<cPatterns.size(); i++)
