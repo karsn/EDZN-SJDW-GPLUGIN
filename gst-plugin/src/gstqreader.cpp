@@ -419,7 +419,7 @@ void *imgCrop(int nXL, int nYL,
 Function: motionClassifyPatterns
 Description:
  1. Conditions
-    Shape
+    xSize = 2*ySize
     Position
 Calls:
 Called By:
@@ -433,9 +433,9 @@ Return:
    >=0 --- Mech Idx
 Others:
 *******************************************************************************/
-typedef std::array<int,3> ClaPoint3D; //x , y , shape
+typedef std::array<int,4> ClaPoint4D; //x , y , xSize, ySize
 
-int motionClassifyPatterns(std::vector<ClaPoint3D> &cPatterns, int nWidth, int nHeight)
+int motionClassifyPatterns(std::vector<ClaPoint4D> &cPatterns, int nWidth, int nHeight)
 {
 	/* Check Input */
 	assert(nWidth>0);
@@ -444,9 +444,10 @@ int motionClassifyPatterns(std::vector<ClaPoint3D> &cPatterns, int nWidth, int n
 	std::vector<int> lclav_PossibleIdx;
 	for(int i=0; i<cPatterns.size(); i++)
 	{
-		if((cPatterns[i][0] > nWidth*9/10) && (cPatterns[i][0]<nWidth*11/10))
+		if((cPatterns[i][0] > nWidth*3/10) && (cPatterns[i][0]<nWidth*13/10))
 		{
 			lclav_PossibleIdx.push_back(i);
+			//cout << __func__ << ": " << i << " match the pos rule, total=" << lclav_PossibleIdx.size() <<  endl;
 		}
 	}
 	
@@ -459,15 +460,20 @@ int motionClassifyPatterns(std::vector<ClaPoint3D> &cPatterns, int nWidth, int n
 	/* check shape */
 	for(int i=0; i<lclav_PossibleIdx.size(); i++)
 	{
-		if(cPatterns[lclav_PossibleIdx[i]][2] != 0)
+		if((cPatterns[lclav_PossibleIdx[i]][2]<(cPatterns[lclav_PossibleIdx[i]][3]*2*9/10))
+		|| (cPatterns[lclav_PossibleIdx[i]][2]>(cPatterns[lclav_PossibleIdx[i]][3]*2*11/10)))
 		{
+			//cout << __func__ << ": erase " << lclav_PossibleIdx[i] << "," << cPatterns[lclav_PossibleIdx[i]][2] << "," << cPatterns[lclav_PossibleIdx[i]][3] << endl;
 			lclav_PossibleIdx.erase(lclav_PossibleIdx.begin()+i);
+			i--;
 		}
 	}
 	
 	/* Output */
 	if(lclav_PossibleIdx.size() != 1)
 	{
+		cout << __func__ << ": None match the rule-x=2y" << endl;
+		cout << __func__ << ": Idx.size = " << lclav_PossibleIdx.size() << endl; 
 		return -1;
 	}
 	
@@ -508,12 +514,12 @@ Others:
 #define MOTION_K2 1.05f //444
 #define MOTION_N2 3.3f
 
-int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
+int motionCreateMap(std::vector<ClaPoint4D> &cPatterns)
 {
-	ClaPoint3D lclav_RefA={0,0,-1};
-	ClaPoint3D lclav_RefB={0,0,-1};
-	ClaPoint3D lclav_Left={0,0,-1};
-	ClaPoint3D lclav_Right={0,0,-1};
+	ClaPoint4D lclav_RefA={0,0,-1};
+	ClaPoint4D lclav_RefB={0,0,-1};
+	ClaPoint4D lclav_Left={0,0,-1};
+	ClaPoint4D lclav_Right={0,0,-1};
 	int ls32v_Ret = 0;
 	
 	/* Check Input */
@@ -534,7 +540,7 @@ int motionCreateMap(std::vector<ClaPoint3D> &cPatterns)
 	for(i=0; i<cPatterns.size(); i++)
 	{
 		int j = 0;
-		ClaPoint3D lclav_Iter = cPatterns[i];
+		ClaPoint4D lclav_Iter = cPatterns[i];
 		
 		for(j=i+1; j<cPatterns.size(); j++)
 		{
@@ -698,7 +704,7 @@ static GstFlowReturn gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuf
   	return GST_FLOW_CUSTOM_ERROR;
   }
   
-  zbar_point_int_t *lptrv_QRPoint = NULL;  //Extract Centers
+  TruZbarPattern *lptrv_QRPoint = NULL;  //Extract Centers
   int ls32v_NumCenters = zbar_image_get_center(lptrv_Image, &lptrv_QRPoint);
   
 //  const zbar_symbol_t *symbol = zbar_image_first_symbol(lptrv_Image);
@@ -717,12 +723,29 @@ static GstFlowReturn gst_qreader_chain (GstPad * pad, GstObject * parent, GstBuf
   lptrv_Image = NULL;
   
   /*Plot Center */ 
-  std::vector<ClaPoint3D> lclav_Patterns(0);
+  std::vector<ClaPoint4D> lclav_Patterns(0);
   
   for(int i=0; i<ls32v_NumCenters; i++)
   {
   	imgPlotCursor(lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY,ls32v_Width, ls32v_Height, ltruv_BufMap.data);
-  	lclav_Patterns.push_back(ClaPoint3D({lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY, 0}));
+  	lclav_Patterns.push_back(ClaPoint4D({lptrv_QRPoint[i].nX, lptrv_QRPoint[i].nY, lptrv_QRPoint[i].nSizeX, lptrv_QRPoint[i].nSizeY}));
+  }
+  
+  /* Patterns classify */
+  ls32v_Ret = motionClassifyPatterns(lclav_Patterns, ls32v_Width, ls32v_Height);
+//  if(ls32v_Ret <0)
+//  {
+//  	g_print("%s(): Patters classify failed!\r\n",__func__);
+//  	
+//  	return GST_FLOW_CUSTOM_ERROR;
+//  }
+  if(ls32v_Ret >= 0)
+  {
+	  imgPlotRect(lclav_Patterns[ls32v_Ret][0]-60, lclav_Patterns[ls32v_Ret][1]-30, 
+	              lclav_Patterns[ls32v_Ret][0]+60, lclav_Patterns[ls32v_Ret][1]+30, 
+	              ls32v_Width, ls32v_Height, ltruv_BufMap.data);
+	              
+	  lclav_Patterns.erase(lclav_Patterns.begin()+ls32v_Ret); //Remove Ref
   }
   
   /* Create Map */
